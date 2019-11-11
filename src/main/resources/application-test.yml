@@ -1,0 +1,17 @@
+logging:
+  file: D:/game/logs/spring-boot.log
+  level.*: INFO
+  level.cn.blmdz: DEBUG
+  
+##################
+### server set
+##################
+server:
+  context-path: /
+  port: 8080
+  session:
+    timeout: 1800
+    
+other:
+  devMode: true
+  job: true
