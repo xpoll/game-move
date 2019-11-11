@@ -24,22 +24,25 @@ import org.springframework.web.socket.server.support.DefaultHandshakeHandler;
 
 import cn.blmdz.game.move.model.UserPrincipal;
 import lombok.extern.slf4j.Slf4j;
+import redis.clients.jedis.Jedis;
 
 @Slf4j
 @Configuration
 @EnableWebSocketMessageBroker// 开启使用STOMP协议来传输基于代理的消息，Broker就是代理的意思
 @EnableWebSocket
 public class WebSocketConfiguration extends AbstractWebSocketMessageBrokerConfigurer implements WebSocketConfigurer {
-    
+
+	private Jedis jedis = new Jedis("127.0.0.1", 6379);
+	
     @Override
     public void configureMessageBroker(MessageBrokerRegistry config) {
-    	config.setApplicationDestinationPrefixes("/app"); //发送消息前缀
-        config.enableSimpleBroker("/simple"); // 订阅代理
+    	config.setApplicationDestinationPrefixes("/app"); //发送消息前缀 @MessageMapping("/say")  stomp.send("/app/say"...  
+        config.enableSimpleBroker("/simple"); // 订阅代理  stomp.subscribe('/simple/greetings'...   template.convertAndSend('/simple/greetings'...
     }
 
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {// StompEndpointRegistry 注册STOMP协议的节点，并指定映射的URL
-        StompWebSocketEndpointRegistration stompWebSocketEndpointRegistration = registry.addEndpoint("/endpoint/placard").setAllowedOrigins("*"); // 注册STOMP协议节点
+        StompWebSocketEndpointRegistration stompWebSocketEndpointRegistration = registry.addEndpoint("/endpoint/placard").setAllowedOrigins("*"); // 注册STOMP协议节点  new SockJS("/endpoint/placard");
         stompWebSocketEndpointRegistration.addInterceptors(new WebSocketInterceptor());
         stompWebSocketEndpointRegistration.setHandshakeHandler(new DefaultHandshakeHandler(){
             @Override
@@ -72,10 +75,12 @@ public class WebSocketConfiguration extends AbstractWebSocketMessageBrokerConfig
     public void onSessionUnsubscribeEvent(SessionUnsubscribeEvent event) {
         log.debug("Client with username {} SessionUnsubscribeEvent", event.getUser().getName());
         ConstantUtil.player.remove(event.getUser().getName());
+		jedis.zrem(ConstantUtil.REDIS_KEY, "m" + ConstantUtil.player.get(event.getUser().getName()));
     }
     @EventListener
     public void onSessionDisconnectEvent(SessionDisconnectEvent event) {
         log.debug("Client with username {} SessionDisconnectEvent", event.getUser().getName());
         ConstantUtil.player.remove(event.getUser().getName());
+		jedis.zrem(ConstantUtil.REDIS_KEY, "m" + ConstantUtil.player.get(event.getUser().getName()));
     }
 }

@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadLocalRandom;
 
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -13,6 +14,8 @@ import com.alibaba.fastjson.JSON;
 import com.google.common.collect.Sets;
 
 import cn.blmdz.game.move.config.ConstantUtil;
+import cn.blmdz.game.move.enums.MessageType;
+import cn.blmdz.game.move.model.Bubble;
 import cn.blmdz.game.move.model.Message;
 import cn.blmdz.game.move.properties.OtherProperties;
 import lombok.extern.slf4j.Slf4j;
@@ -37,6 +40,21 @@ public class SockJsController {
 	public void greeting(Message message) {
 		log.info("message: {}", JSON.toJSONString(message));
 		template.convertAndSend(ConstantUtil.GREETINGS, JSON.toJSONString(message));
+		MessageType type = MessageType.conversion(message.getType());
+		switch (type) {
+		case REGISTER:
+			Bubble bubble = JSON.parseObject(message.getMsg(), Bubble.class);
+			bubble.setId(ConstantUtil.generateID());
+			jedis.geoadd(ConstantUtil.REDIS_KEY,
+					bubble.getX() * 0.00001,
+					bubble.getY() * 0.00001,
+					"m" + bubble.getId());
+			break;
+		case DISTANCE:
+			break;
+		default:
+			break;
+		}
 	}	
 	
 	private static final ExecutorService fixedThreadPool = Executors.newFixedThreadPool(10);

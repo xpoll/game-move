@@ -7,10 +7,11 @@ import lombok.Data;
  */
 @Data
 public class Bubble {
-	private int x;
-	private int y;
-	private int radius;
+	private Long id;
+	private Integer x;
+	private Integer y;
+	private Integer radius;
 	private String name;
 //	private boolean self;
-	private double distance;
+	private Double distance;
 }
