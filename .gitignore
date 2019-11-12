@@ -29,5 +29,4 @@
 .metadata/**
 logging.fileDir*
 /target/
-**/main/resources/static/
 **/application.yaml

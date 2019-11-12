@@ -4,8 +4,10 @@ import java.util.Objects;
 
 public enum MessageType {
 
-	REGISTER(1, "注册位置点"),
-	DISTANCE(2, "位置返回"),
+	F_REGISTER(1, "注册位置点"),
+	
+	B_DISTANCE(2, "位置返回"),
+	B_REGISTER(101, "注册返回"),
     ;
     
 	

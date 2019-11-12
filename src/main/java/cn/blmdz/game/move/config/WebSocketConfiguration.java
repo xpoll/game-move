@@ -7,14 +7,13 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.event.EventListener;
 import org.springframework.http.server.ServerHttpRequest;
 import org.springframework.messaging.simp.config.MessageBrokerRegistry;
+import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.web.socket.WebSocketHandler;
 import org.springframework.web.socket.config.annotation.AbstractWebSocketMessageBrokerConfigurer;
 import org.springframework.web.socket.config.annotation.EnableWebSocket;
 import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBroker;
 import org.springframework.web.socket.config.annotation.StompEndpointRegistry;
 import org.springframework.web.socket.config.annotation.StompWebSocketEndpointRegistration;
-import org.springframework.web.socket.config.annotation.WebSocketConfigurer;
-import org.springframework.web.socket.config.annotation.WebSocketHandlerRegistry;
 import org.springframework.web.socket.messaging.SessionConnectEvent;
 import org.springframework.web.socket.messaging.SessionConnectedEvent;
 import org.springframework.web.socket.messaging.SessionDisconnectEvent;
@@ -22,7 +21,6 @@ import org.springframework.web.socket.messaging.SessionSubscribeEvent;
 import org.springframework.web.socket.messaging.SessionUnsubscribeEvent;
 import org.springframework.web.socket.server.support.DefaultHandshakeHandler;
 
-import cn.blmdz.game.move.model.UserPrincipal;
 import lombok.extern.slf4j.Slf4j;
 import redis.clients.jedis.Jedis;
 
@@ -30,14 +28,15 @@ import redis.clients.jedis.Jedis;
 @Configuration
 @EnableWebSocketMessageBroker// 开启使用STOMP协议来传输基于代理的消息，Broker就是代理的意思
 @EnableWebSocket
-public class WebSocketConfiguration extends AbstractWebSocketMessageBrokerConfigurer implements WebSocketConfigurer {
+public class WebSocketConfiguration extends AbstractWebSocketMessageBrokerConfigurer {
 
 	private Jedis jedis = new Jedis("127.0.0.1", 6379);
 	
     @Override
     public void configureMessageBroker(MessageBrokerRegistry config) {
     	config.setApplicationDestinationPrefixes("/app"); //发送消息前缀 @MessageMapping("/say")  stomp.send("/app/say"...  
-        config.enableSimpleBroker("/simple"); // 订阅代理  stomp.subscribe('/simple/greetings'...   template.convertAndSend('/simple/greetings'...
+        config.enableSimpleBroker("/simple", "/user"); // 订阅代理  stomp.subscribe('/simple/greetings'...   template.convertAndSend('/simple/greetings'...
+        config.setUserDestinationPrefix("/user"); // 默认用户发送
     }
 
     @Override
@@ -53,34 +52,37 @@ public class WebSocketConfiguration extends AbstractWebSocketMessageBrokerConfig
         stompWebSocketEndpointRegistration.withSockJS(); // 指定使用SockJS协议。
     }
 
-    @Override
-    public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
-    }
-
     @EventListener
     public void onSessionConnectEvent(SessionConnectEvent event) {
-        log.debug("Client with username {} SessionConnectEvent", event.getUser().getName());
+        StompHeaderAccessor sha = StompHeaderAccessor.wrap(event.getMessage());
+        log.debug("ConnectEvent web: {}, socket: {}", sha.getUser().getName(), sha.getSessionId());
     }
     @EventListener
     public void onSessionConnectedEvent(SessionConnectedEvent event) {
-        log.debug("Client with username {} SessionConnectedEvent", event.getUser().getName());
+        StompHeaderAccessor sha = StompHeaderAccessor.wrap(event.getMessage());
+        log.debug("ConnectedEvent web: {}, socket: {}", sha.getUser().getName(), sha.getSessionId());
     }
     @EventListener
     public void onSessionSubscribeEvent(SessionSubscribeEvent event) {
-        log.debug("Client with username {} SessionSubscribeEvent", event.getUser().getName());
-        UserPrincipal user = (UserPrincipal) event.getUser();
-        ConstantUtil.player.put(user.getName(), user.getId());
+        StompHeaderAccessor sha = StompHeaderAccessor.wrap(event.getMessage());
+        log.debug("SubscribeEvent web: {}, socket: {}", sha.getUser().getName(), sha.getSessionId());
     }
     @EventListener
     public void onSessionUnsubscribeEvent(SessionUnsubscribeEvent event) {
-        log.debug("Client with username {} SessionUnsubscribeEvent", event.getUser().getName());
-        ConstantUtil.player.remove(event.getUser().getName());
-		jedis.zrem(ConstantUtil.REDIS_KEY, "m" + ConstantUtil.player.get(event.getUser().getName()));
+        StompHeaderAccessor sha = StompHeaderAccessor.wrap(event.getMessage());
+        log.debug("UnsubscribeEvent web: {}, socket: {}", sha.getUser().getName(), sha.getSessionId());
+        
+//        ConstantUtil.player.remove(sha.getUser().getName());
+//        jedis.del("player:" + sha.getUser().getName());
+//        jedis.zrem(ConstantUtil.REDIS_KEY, sha.getSessionId());
     }
     @EventListener
     public void onSessionDisconnectEvent(SessionDisconnectEvent event) {
-        log.debug("Client with username {} SessionDisconnectEvent", event.getUser().getName());
-        ConstantUtil.player.remove(event.getUser().getName());
-		jedis.zrem(ConstantUtil.REDIS_KEY, "m" + ConstantUtil.player.get(event.getUser().getName()));
+        StompHeaderAccessor sha = StompHeaderAccessor.wrap(event.getMessage());
+        log.debug("DisconnectEvent web: {}, socket: {}", sha.getUser().getName(), sha.getSessionId());
+
+        ConstantUtil.player.remove(sha.getUser().getName());
+        jedis.del("player:" + sha.getUser().getName());
+        jedis.zrem(ConstantUtil.REDIS_KEY, sha.getSessionId());
     }
 }

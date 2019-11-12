@@ -11,7 +11,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class UserPrincipal implements Principal {
 
-	private Long id;
+	/** websessionid */
 	private String name;
 
 	@Override

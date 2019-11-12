@@ -28,13 +28,14 @@ public class WebSocketInterceptor implements HandshakeInterceptor {
             ServletServerHttpRequest serverHttpRequest = (ServletServerHttpRequest) request;
             HttpSession session = serverHttpRequest.getServletRequest().getSession();
             if (session != null && session.getAttribute("user") != null) {
-                log.info("{} add websocket session.", session.getAttribute("user"));
-                attributes.put("user", session.getAttribute("user"));
+            	attributes.put("user", session.getAttribute("user"));
+                log.debug("web session add: {}", ((UserPrincipal)session.getAttribute("user")).getName());
             } else {
-            	UserPrincipal userPrincipal = new UserPrincipal(ConstantUtil.generateID(), session.getId());
-                log.info("new {} add websocket session.", session.getId());
+            	UserPrincipal userPrincipal = new UserPrincipal(session.getId());
                 session.setAttribute("user", userPrincipal);
                 attributes.put("user", userPrincipal);
+                
+                log.debug("web session new: {}", userPrincipal.getName());
             }
         }
         return true;

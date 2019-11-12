@@ -7,7 +7,7 @@ import lombok.Data;
  */
 @Data
 public class Bubble {
-	private Long id;
+	private String id;
 	private Integer x;
 	private Integer y;
 	private Integer radius;
