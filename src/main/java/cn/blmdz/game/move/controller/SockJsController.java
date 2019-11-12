@@ -24,10 +24,10 @@ import cn.blmdz.game.move.enums.MessageType;
 import cn.blmdz.game.move.model.Bubble;
 import cn.blmdz.game.move.model.Message;
 import cn.blmdz.game.move.model.UserPrincipal;
+import cn.blmdz.game.move.util.RedisUtil;
 import lombok.extern.slf4j.Slf4j;
 import redis.clients.jedis.GeoRadiusResponse;
 import redis.clients.jedis.GeoUnit;
-import redis.clients.jedis.Jedis;
 import redis.clients.jedis.params.GeoRadiusParam;
 
 /**
@@ -38,37 +38,44 @@ import redis.clients.jedis.params.GeoRadiusParam;
 public class SockJsController {
 
 	private @Autowired SimpMessagingTemplate template;
-	private Jedis jedis = new Jedis("127.0.0.1", 6379);
-	
 	
 	@MessageMapping("/say")
 	public void greeting(Message message, StompHeaderAccessor accessor, UserPrincipal principal) {
 		log.info("message: {}", JSON.toJSONString(message));
 		log.info("accessor: {}", accessor);
 		log.info("principal: {}", principal);
-		String sessionId = accessor.getSessionId();
 		
 		MessageType type = MessageType.conversion(message.getType());
 		switch (type) {
-		case F_REGISTER:
+		case F_REGISTER: {
 			Bubble bubble = JSON.parseObject(message.getMsg(), Bubble.class);
-			bubble.setId(sessionId);
+			bubble.setId(principal.getName());
 			
 			// 增加位置
-			jedis.geoadd(ConstantUtil.REDIS_KEY,
+			RedisUtil.geoadd(ConstantUtil.REDIS_KEY,
 					bubble.getX() * 0.00001,
 					bubble.getY() * 0.00001,
 					bubble.getId());
 			// 增加玩家
-			jedis.set("player:" + principal.getName(), JSON.toJSONString(bubble));
+			RedisUtil.set("player:" + principal.getName(), JSON.toJSONString(bubble));
 			
 			// 增加映射关系
 //			jedis.set("session:" + principal.getName(), sessionId);
-			ConstantUtil.player.put(principal.getName(), sessionId);
+			ConstantUtil.player.put(principal.getName(), accessor.getSessionId());
 			
 //			ConstantUtil.send(template, sessionId, JSON.toJSONString(bubble));
-			loop ();
 			break;
+		}
+		case F_MOVE: {
+			Bubble bubble = JSON.parseObject(message.getMsg(), Bubble.class);
+			bubble.setId(principal.getName());
+			RedisUtil.zrem(ConstantUtil.REDIS_KEY, bubble.getId());
+			RedisUtil.geoadd(ConstantUtil.REDIS_KEY,
+					bubble.getX() * 0.00001,
+					bubble.getY() * 0.00001,
+					bubble.getId());
+			RedisUtil.set("player:" + principal.getName(), JSON.toJSONString(bubble));
+		}
 		default:
 			break;
 		}
@@ -78,33 +85,38 @@ public class SockJsController {
 	
 	@PostConstruct
 	public void init () {
+		RedisUtil.del(ConstantUtil.REDIS_KEY);
 		fixedThreadPool.execute(new Runnable() {
 			@Override
 			public void run() {
-//				while (true) {
-//				}
+				while (true) {
+					loop ();
+					try {
+						Thread.sleep(10);
+					} catch (InterruptedException e) {
+						e.printStackTrace();
+					}
+				}
 			}
 		});
 	}
 	public void loop () {
-		System.out.println(JSON.toJSONString(ConstantUtil.player));
 		Set<String> players = Sets.newConcurrentHashSet(ConstantUtil.player.keySet());
 		players.forEach(webId -> {
 			// 并发有问题
-//			fixedThreadPool.execute(new Runnable() {
-//				@Override
-//				public void run() {
+			fixedThreadPool.execute(new Runnable() {
+				@Override
+				public void run() {
 					
-					List<GeoRadiusResponse> georadiusMembers =  jedis.georadiusByMember(
+					List<GeoRadiusResponse> georadiusMembers =  RedisUtil.georadiusByMember(
 							ConstantUtil.REDIS_KEY,
-							ConstantUtil.player.get(webId),
-							10000,
-							GeoUnit.KM,
+							webId,
+							500,
+							GeoUnit.M,
 							GeoRadiusParam.geoRadiusParam().withCoord().withDist().sortAscending());
 					
-					List<Bubble> collect = georadiusMembers.stream().map(georadiusMember -> {
-						
-						String str = jedis.get("player:" + webId); // 这个应该是georadiusMember.getMember() 对应的webid
+					List<Bubble> collect = georadiusMembers.stream().filter(item -> !item.getMemberByString().equalsIgnoreCase(webId)).map(georadiusMember -> {
+						String str = RedisUtil.get("player:" + georadiusMember.getMemberByString()); // 这个应该是georadiusMember.getMember() 对应的webid
 						if (StringUtils.isNotBlank(str)) {
 							Bubble bubble = JSON.parseObject(str, Bubble.class);
 							bubble.setX(((int) (georadiusMember.getCoordinate().getLongitude() * 100000)));
@@ -115,17 +127,16 @@ public class SockJsController {
 						return null;
 					}).collect(Collectors.toList());
 					
-					collect = collect.stream().filter(item -> item != null && !item.getId().equals(ConstantUtil.player.get(webId))).collect(Collectors.toList());
-					if (!CollectionUtils.isEmpty(collect)) {
-						Message message = new Message();
-						message.setType(MessageType.B_DISTANCE.value());
-						message.setMsg(JSON.toJSONString(collect));
-						
+					collect = collect.stream().filter(item -> item != null).collect(Collectors.toList());
+					Message message = new Message();
+					message.setType(MessageType.B_DISTANCE.value());
+					message.setMsg(CollectionUtils.isEmpty(collect) ? "[]" : JSON.toJSONString(collect));
+					if (ConstantUtil.player.get(webId) != null) {
 						ConstantUtil.send(template, ConstantUtil.player.get(webId), JSON.toJSONString(message));
 						log.debug("send distance: {}, all: {}", webId, JSON.toJSONString(message));
 					}
-//				}
-//			});
+				}
+			});
 		});
 	}
 }

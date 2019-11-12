@@ -116,7 +116,10 @@ body {
 					var message = JSON.parse(greeting.body);
 					console.info('self', message)
 					if (message.type == 101) {
-						//connectself(JSON.parse(message.msg))
+						bubbles = [bubble]
+						JSON.parse(message.msg).forEach(function (item, index) {
+							var b = new Bubble(item.name + '(' + item.distance + 'm)', item.x, item.y, item.radius, colors[randomNum(0, 0)], false);
+						})
 					}
 				});
 				stomp.subscribe('/simple/greetings', function(greeting) {//订阅公共的频道
@@ -175,7 +178,7 @@ body {
 		        ctx.globalCompositeOperation = 'color-dodge';
 		        ctx.beginPath();
 		        var temp = randomNum(0, 100);
-		        this.radius = (this.radius + (temp > 98 ? 1 : (temp < 2 ? -1 : 0))) || 1
+		        // this.radius = (this.radius + (temp > 98 ? 1 : (temp < 2 ? -1 : 0))) || 1
 		        // this.radius += changeSettings(this.radius, 20, 100, 15);
 		
 		        var gradient = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, this.radius);
@@ -245,22 +248,28 @@ body {
 							randomNum(window.innerWidth * 1/5, window.innerWidth * 4/5),
 							randomNum(window.innerHeight * 1/5, window.innerHeight * 4/5),
 							randomNum(1, 100),
-							colors[randomNum(0, 2)],
+							colors[randomNum(0, 0)],
 							true);
 					send(1, JSON.stringify(bubble))
 				}
 			})
 			
 		    document.onkeydown = function(e) {
+				var move = false
 		        if(e.keyCode == 37 && bubble.x > bubble.radius) {// 左
 		        	bubble.x -= speed
+		        	move = true
 		        }else if(e.keyCode == 38 && bubble.y > bubble.radius) {// 前
 		        	bubble.y -= speed
+		        	move = true
 		        }else if(e.keyCode == 39 && bubble.x < (canvasWidth - bubble.radius)) {// 右
 		        	bubble.x += speed
+		        	move = true
 		        }else if(e.keyCode == 40 && bubble.y < (canvasHeight - bubble.radius)) {// 后
 		        	bubble.y += speed
+		        	move = true
 		        }
+				move ? send(2, JSON.stringify(bubble)) : ''
 		    }
 		});
 

@@ -21,8 +21,8 @@ import org.springframework.web.socket.messaging.SessionSubscribeEvent;
 import org.springframework.web.socket.messaging.SessionUnsubscribeEvent;
 import org.springframework.web.socket.server.support.DefaultHandshakeHandler;
 
+import cn.blmdz.game.move.util.RedisUtil;
 import lombok.extern.slf4j.Slf4j;
-import redis.clients.jedis.Jedis;
 
 @Slf4j
 @Configuration
@@ -30,8 +30,6 @@ import redis.clients.jedis.Jedis;
 @EnableWebSocket
 public class WebSocketConfiguration extends AbstractWebSocketMessageBrokerConfigurer {
 
-	private Jedis jedis = new Jedis("127.0.0.1", 6379);
-	
     @Override
     public void configureMessageBroker(MessageBrokerRegistry config) {
     	config.setApplicationDestinationPrefixes("/app"); //发送消息前缀 @MessageMapping("/say")  stomp.send("/app/say"...  
@@ -82,7 +80,7 @@ public class WebSocketConfiguration extends AbstractWebSocketMessageBrokerConfig
         log.debug("DisconnectEvent web: {}, socket: {}", sha.getUser().getName(), sha.getSessionId());
 
         ConstantUtil.player.remove(sha.getUser().getName());
-        jedis.del("player:" + sha.getUser().getName());
-        jedis.zrem(ConstantUtil.REDIS_KEY, sha.getSessionId());
+        RedisUtil.del("player:" + sha.getUser().getName());
+        RedisUtil.zrem(ConstantUtil.REDIS_KEY, sha.getUser().getName());
     }
 }
