@@ -14,9 +14,17 @@ public class SpecialController {
 	private static final String sufix = ".html";
 
     @Autowired SimpMessagingTemplate template;
-	
+
 	@RequestMapping(value= {"/index", "/"}, method=RequestMethod.GET)
 	public String indexView() {
 		return prefix + "index" + sufix;
+	}
+	@RequestMapping(value= "/audio", method=RequestMethod.GET)
+	public String audioView() {
+		return prefix + "audio" + sufix;
+	}
+	@RequestMapping(value= "/draw", method=RequestMethod.GET)
+	public String drawView() {
+		return prefix + "draw" + sufix;
 	}
 }

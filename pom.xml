@@ -11,7 +11,7 @@
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<maven.compiler.source>${java.version}</maven.compiler.source>
 		<maven.compiler.target>${java.version}</maven.compiler.target>
-		<main.class>cn.blmdz.print.client.PrintClientApplication</main.class>
+		<main.class>cn.blmdz.game.move.GameMoveApplication</main.class>
 	</properties>
 
 

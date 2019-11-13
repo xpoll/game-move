@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>draw</title>
+  <style type="text/css">
+    * {
+      padding: 0;
+      margin: 0;
+    }
+    .container {
+      display: flex;
+    }
+    .tools-left, .tools-right {
+      border: 1px solid red;
+      display: flex;
+      flex-direction: column;
+      height: 200px;
+      width: 30px;
+    }
+    .draw {
+      margin: 0 1px;
+      border: 1px solid red;
+      display: flex;
+      height: 200px;
+      width: 400px;
+      cursor: crosshair;
+    }
+    .tools-left div, .tools-right div {
+      height: 28px;
+      border: 1px solid #eee;
+      border-radius: 15px;
+      line-height: 28px;
+    }
+    .tools-left div:hover, .tools-right div:hover, .tools-choose {
+      border: 1px solid #000 !important;
+      cursor: pointer;
+    }
+    .tools-left div:last-child:active {
+      background-color: #eee;
+    }
+    .tools-left div:first-child, .tools-right div:first-child {
+      margin-top: 10px;
+    }
+    .left-one {background-color: #cb3594;}
+    .left-two {background-color: #659b41;}
+    .left-three {background-color: #ffcf33;}
+    .left-four {background-color: #986928;}
+    .left-five {background-color: #000000;}
+    .left-six {background-color: #ffffff;}
+
+    .tools-right div, .tools-left div:last-child {font-family: 幼圆;text-align: center;}
+    .right-one {font-size: 12px;}
+    .right-two {font-size: 14px;}
+    .right-three {font-size: 16px;}
+    .right-four {font-size: 18px;}
+  </style>
+</head>
+<body>
+<div class="container" onselectstart="return false;">
+  <div class="tools-left" id="tools-left">
+    <div class="left-one tools-choose"></div>
+    <div class="left-two"></div>
+    <div class="left-three"></div>
+    <div class="left-four"></div>
+    <div class="left-five"></div>
+    <div class="left-six">清</div>
+  </div>
+  <canvas class="draw" id="draw"></canvas>
+  <div class="tools-right" id="tools-right">
+    <div class="right-one tools-choose">1号</div>
+    <div class="right-two">2号</div>
+    <div class="right-three">3号</div>
+    <div class="right-four">4号</div>
+    <div class="right-five tools-choose">笔</div>
+    <div class="right-six">檫</div>
+  </div>
+</div>
+<script type="text/javascript">
+  var aDiv = document.getElementById('tools-left').getElementsByTagName('div')
+  var bDiv = document.getElementById('tools-right').getElementsByTagName('div')
+  // 工具箱点击事件
+  aDiv[0].onclick = function () {colorToolsChoose(0);clearToolsClass (this, new Array(aDiv[1], aDiv[2], aDiv[3], aDiv[4]))}
+  aDiv[1].onclick = function () {colorToolsChoose(1);clearToolsClass (this, new Array(aDiv[0], aDiv[2], aDiv[3], aDiv[4]))}
+  aDiv[2].onclick = function () {colorToolsChoose(2);clearToolsClass (this, new Array(aDiv[0], aDiv[1], aDiv[3], aDiv[4]))}
+  aDiv[3].onclick = function () {colorToolsChoose(3);clearToolsClass (this, new Array(aDiv[0], aDiv[1], aDiv[2], aDiv[4]))}
+  aDiv[4].onclick = function () {colorToolsChoose(4);clearToolsClass (this, new Array(aDiv[0], aDiv[1], aDiv[2], aDiv[3]))}
+  aDiv[5].onclick = function () {resetdraw()}
+
+  bDiv[0].onclick = function () {sizeToolsChoose(0);clearToolsClass (this, new Array(bDiv[1], bDiv[2], bDiv[3]))}
+  bDiv[1].onclick = function () {sizeToolsChoose(1);clearToolsClass (this, new Array(bDiv[0], bDiv[2], bDiv[3]))}
+  bDiv[2].onclick = function () {sizeToolsChoose(2);clearToolsClass (this, new Array(bDiv[0], bDiv[1], bDiv[3]))}
+  bDiv[3].onclick = function () {sizeToolsChoose(3);clearToolsClass (this, new Array(bDiv[0], bDiv[1], bDiv[2]))}
+  bDiv[4].onclick = function () {toolsChoose(0);clearToolsClass (this, new Array(bDiv[5]))}
+  bDiv[5].onclick = function () {toolsChoose(1);clearToolsClass (this, new Array(bDiv[4]))}
+  /**
+   * 工具箱选中样式
+   */
+  function clearToolsClass (e, arr) {
+    e.classList.add('tools-choose')
+    for (var i = 0; i < arr.length; i++) {
+      arr[i].classList.remove('tools-choose')
+    }
+  }
+  function colorToolsChoose(num) {
+    curColor = colorArr[num]
+  }
+  function sizeToolsChoose(num) {
+    curSize = sizeArr[num]
+  }
+  function toolsChoose(num) {
+    curTool = toolArr[num]
+  }
+  // 数据定义
+  var canvas = document.getElementById('draw')
+  var canvasWidth = 400;
+  var canvasHeight = 200;
+  canvas.setAttribute('width', canvasWidth);
+  canvas.setAttribute('height', canvasHeight);
+  var drawLeft = canvas.getBoundingClientRect().left;
+  var drawTop = canvas.getBoundingClientRect().top
+  if(typeof G_vmlCanvasManager != 'undefined') {
+    canvas = G_vmlCanvasManager.initElement(canvas);
+  }
+  var context = canvas.getContext("2d")
+
+  var sizeArr = new Array(2, 4, 8, 16)
+  var colorArr = new Array("#cb3594", "#659b41", "#ffcf33", "#986928", "#000000", "#ffffff")
+  var toolArr = new Array(0, 1)// 0 笔芯 1 橡皮擦
+  var curColor = colorArr[0]
+  var curSize = sizeArr[0]
+  var curTool = toolArr[0]
+  var paint = false
+  var drawObjPrevious = new Object()
+  var drawObjCurrent = new Object()
+  // var drawX = [], drawY = [], drawTool = [], drawColor = [], drawSize = [], drawPaint = []
+
+  canvas.onmousedown = function(e){
+    var x = e.pageX - this.offsetLeft;
+    var y = e.pageY - this.offsetTop;
+    drawmousedown(x, y);
+  }
+  canvas.onmousemove = function(e){
+    var x = e.pageX - this.offsetLeft;
+    var y = e.pageY - this.offsetTop;
+    drawmousemove(x, y);
+  }
+  canvas.onmouseup = function(e){
+    drawmouseup();
+  }
+  canvas.onmouseleave = function(e){
+    drawmouseleave();
+  }
+
+  function drawmousedown(x, y) {
+    paint = true
+    redraw(x, y, false)
+  }
+  function drawmousemove(x, y) {
+    paint ? redraw(x, y, true) : null
+  }
+  function drawmouseup() {
+    paint = false
+  }
+  function drawmouseleave() {
+    paint = false
+  }
+  function resetdraw() {
+    context.clearRect(0, 0, canvasWidth, canvasHeight)
+    drawObjPrevious = new Object()
+    drawObjCurrent = new Object()
+  }
+  function redraw(x, y, p) {
+    var obj = new Object()
+    obj.x = x
+    obj.y = y
+    obj.paint = p
+    obj.tool = curTool
+    obj.color = curColor
+    obj.size = curSize
+    drawObjPrevious = drawObjCurrent
+    drawObjCurrent = obj
+
+    context.beginPath()
+    if (drawObjCurrent.paint) {
+      context.moveTo(drawObjPrevious.x, drawObjPrevious.y)
+      context.lineTo(drawObjCurrent.x, drawObjCurrent.y)
+    }
+    context.closePath()
+    context.strokeStyle = drawObjCurrent.tool == toolArr[1] ? colorArr[5] : drawObjCurrent.color
+    context.lineJoin = "round"
+    context.lineWidth = drawObjCurrent.size
+    context.stroke()
+    context.restore()
+  }
+
+</script>
+</body>
+</html>
