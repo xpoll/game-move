@@ -60,10 +60,7 @@ public class SockJsController {
 			RedisUtil.set("player:" + principal.getName(), JSON.toJSONString(bubble));
 			
 			// 增加映射关系
-//			jedis.set("session:" + principal.getName(), sessionId);
 			ConstantUtil.player.put(principal.getName(), accessor.getSessionId());
-			
-//			ConstantUtil.send(template, sessionId, JSON.toJSONString(bubble));
 			break;
 		}
 		case F_MOVE: {
@@ -92,7 +89,7 @@ public class SockJsController {
 				while (true) {
 					loop ();
 					try {
-						Thread.sleep(10);
+						Thread.sleep(80);
 					} catch (InterruptedException e) {
 						e.printStackTrace();
 					}

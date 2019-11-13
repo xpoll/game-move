@@ -89,6 +89,13 @@ body {
 			if (event.button == 2)
 				return false;
 		}
+		// 阻止浏览器自身滑动事件
+		$(document).ready(function(){
+			function stopScrolling(event) {
+				event.preventDefault();
+			}
+			document.addEventListener('touchmove',stopScrolling,false);
+		})
 
 		$(function(){
 			
