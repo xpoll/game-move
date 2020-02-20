@@ -1,4 +1,4 @@
-﻿package cn.blmdz.game.test;
+package cn.blmdz.game.test;
 
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
