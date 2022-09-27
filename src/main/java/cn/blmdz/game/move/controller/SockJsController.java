@@ -72,10 +72,12 @@ public class SockJsController {
 					bubble.getY() * 0.00001,
 					bubble.getId());
 			RedisUtil.set("player:" + principal.getName(), JSON.toJSONString(bubble));
+			break;
 		}
 		default:
 			break;
 		}
+		loop ();
 	}
 	
 	private static final ExecutorService fixedThreadPool = Executors.newFixedThreadPool(10);
@@ -83,19 +85,19 @@ public class SockJsController {
 	@PostConstruct
 	public void init () {
 		RedisUtil.del(ConstantUtil.REDIS_KEY);
-		fixedThreadPool.execute(new Runnable() {
-			@Override
-			public void run() {
-				while (true) {
-					loop ();
-					try {
-						Thread.sleep(80);
-					} catch (InterruptedException e) {
-						e.printStackTrace();
-					}
-				}
-			}
-		});
+//		fixedThreadPool.execute(new Runnable() {
+//			@Override
+//			public void run() {
+//				while (true) {
+//					loop ();
+//					try {
+//						Thread.sleep(80);
+//					} catch (InterruptedException e) {
+//						e.printStackTrace();
+//					}
+//				}
+//			}
+//		});
 	}
 	public void loop () {
 		Set<String> players = Sets.newConcurrentHashSet(ConstantUtil.player.keySet());
