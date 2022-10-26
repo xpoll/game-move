@@ -1,6 +1,7 @@
 package cn.blmdz.game.console;
 
 public enum Instruction {
+//	https://www.bilibili.com/read/cv16491502/
 	CMD_0("\033[0m", "关闭所有属性 "),
 	CMD_1("\033[1m", "设置高亮度"),
 	CMD_4("\033[2m", "下划线"),
